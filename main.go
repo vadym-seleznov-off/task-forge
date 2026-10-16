@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"bufio"
 	"os"
 )
@@ -22,25 +23,43 @@ type Task struct {
 }
 
 func printTasks(tasks []Task) {
+	if len(tasks) == 0 {
+		fmt.Println("Task list is empty at this moment")
+		return
+	}
+
 	for _, task := range tasks {
 		fmt.Printf("[%d] %s (%s)\n", task.ID, task.Title, task.Status)
 	}
 }
 
+func readInput(scanner *bufio.Scanner) (string, error) {
+	if !scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return "", err
+		}
+		return "", io.EOF
+	}
+
+	return scanner.Text(), nil
+
+}
+
 func main() {
-	tasks := []Task{}
 	scanner := bufio.NewScanner(os.Stdin)
+	tasks := []Task{}
+	id := 1	
 
 	for {
 		fmt.Print("> ")
-		scanner.Scan()
-		
-		if err := scanner.Err(); err != nil {
+		request, err := readInput(*scanner)
+		if err != nil {
 			fmt.Fprintln(os.Stderr, "reading standard input error:", err)
+			return
 		}
+	
+		request = strings.TrimSpace(request)
 
-		request := scanner.Text()
-		
 		switch request {
 		case "help":
 			fmt.Println("Commands are: help, add, list, exit")
@@ -48,24 +67,39 @@ func main() {
 			var newTask Task
 			
 			fmt.Print("Title: ")
-			scanner.Scan()
-			
-			if err := scanner.Err(); err != nil {
-				fmt.Fprintln(os.Stderr, "reading standard input error:", err)
+			title, err := readInput(*scanner)
+
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					fmt.Println("\nGoodbye!")
+					return
+				}
+
+				fmt.Fprintln(os.Stderr, "input error:", err)
+				return
 			}
 
-			title := scanner.Text()
+			title = strings.TrimSpace(title)
+
+			if title == "" {
+				fmt.Fprintln(os.Stderr, "Title of task cannot be empty!")
+				break
+			}
 
 			fmt.Print("Description: ")
-			scanner.Scan()
-			
-			if err := scanner.Err(); err != nil {
-				fmt.Fprintln(os.Stderr, "reading standard input error:", err)
+			description, err := readInput(*scanner)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					fmt.Println("\nGoodbye!")
+					return
+				}
+
+				fmt.Fprintln(os.Stderr, "input error:", err)
+				return
 			}
+			
 
-			description := scanner.Text()
-
-			id := len(tasks) + 1
+			description = strings.TrimSpace(description)
 
 			newTask.Title = title
 			newTask.ID = id
@@ -73,7 +107,7 @@ func main() {
 			newTask.Status = StatusTodo
 
 			tasks = append(tasks, newTask)
-			fmt.Printf("Task created with ID: %d\n", id)
+			fmt.Printf("Task created with ID: %d\n", id); id += 1
 		case "list":
 			printTasks(tasks)
 		case "exit":
