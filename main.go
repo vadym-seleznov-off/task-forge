@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"bufio"
+	"errors"
+	"io"
 	"os"
 )
 
@@ -52,7 +54,7 @@ func main() {
 
 	for {
 		fmt.Print("> ")
-		request, err := readInput(*scanner)
+		request, err := readInput(scanner)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "reading standard input error:", err)
 			return
@@ -67,7 +69,7 @@ func main() {
 			var newTask Task
 			
 			fmt.Print("Title: ")
-			title, err := readInput(*scanner)
+			title, err := readInput(scanner)
 
 			if err != nil {
 				if errors.Is(err, io.EOF) {
@@ -87,7 +89,7 @@ func main() {
 			}
 
 			fmt.Print("Description: ")
-			description, err := readInput(*scanner)
+			description, err := readInput(scanner)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					fmt.Println("\nGoodbye!")
