@@ -91,6 +91,8 @@ func readTaskId(scanner *bufio.Scanner) (int, error) {
 		return 0, err
 	}
 
+	input = strings.TrimSpaces(input)
+
 	id, err := strconv.Atoi(input)
 	if err != nil {
 		return 0, err
@@ -108,6 +110,11 @@ func main() {
 		fmt.Print("> ")
 		request, err := readInput(scanner)
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				fmt.Println("\nGoodbye!")
+				return
+			}
+
 			fmt.Fprintln(os.Stderr, "reading standard input error:", err)
 			return
 		}
@@ -116,13 +123,14 @@ func main() {
 
 		switch request {
 		case "help":
-			fmt.Println("Commands are: help, add, list, exit")
+			fmt.Println("Commands are: help, add, list, exit, done, delete")
 		case "delete":
 			taskID, err := readTaskId(scanner)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "ERROR:", err)
 				continue
 			}
+
 
 			if err = tasks.deleteById(taskID); err != nil {
 				fmt.Fprintln(os.Stderr, "ERROR:", err)
