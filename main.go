@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"slices"
 	"strconv"
 	"bufio"
 	"errors"
@@ -46,6 +47,17 @@ func (tasks TaskList) getById(id int) (*Task, error){
 	return nil, errors.New("Not found")
 }
 
+func (tasks *TaskList) deleteById(id int) error {
+	for i := range *tasks {
+		if (*tasks)[i].ID == id {
+			*tasks = slices.Delete(*tasks, i, i + 1)
+			return nil
+		}
+	}
+
+	return errors.New("Task not found")
+}
+
 func printTasks(tasks TaskList) {
 	if len(tasks) == 0 {
 		fmt.Println("Task list is empty at this moment")
@@ -86,6 +98,31 @@ func main() {
 		switch request {
 		case "help":
 			fmt.Println("Commands are: help, add, list, exit")
+		case "delete":
+			fmt.Print("Provide ID of task: ")
+			input, err := readInput(scanner)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					fmt.Println("\nGoodbye!")
+					return
+				}
+
+				fmt.Fprintln(os.Stderr, "input error:", err)
+				return
+			}
+
+			id, err := strconv.Atoi(input)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "Error while parsing input:", err)
+				continue
+			}
+
+			if err = tasks.deleteById(id); err != nil {
+				fmt.Fprintln(os.Stderr, "ERROR:", err)
+				continue
+			}
+
+			fmt.Println("Successfully deleted task with ID:", id)
 		case "done":
 			fmt.Print("Provide ID of task: ")
 			input, err := readInput(scanner)
@@ -102,7 +139,7 @@ func main() {
 			id, err := strconv.Atoi(input)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "Error while parsing input:", err)
-				return
+				continue
 			}
 			
 			t, err := tasks.getById(id)
