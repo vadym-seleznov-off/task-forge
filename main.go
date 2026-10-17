@@ -44,7 +44,6 @@ func readInput(scanner *bufio.Scanner) (string, error) {
 	}
 
 	return scanner.Text(), nil
-
 }
 
 func main() {
