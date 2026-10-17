@@ -80,10 +80,29 @@ func readInput(scanner *bufio.Scanner) (string, error) {
 	return scanner.Text(), nil
 }
 
+func readTaskId(scanner *bufio.Scanner) (int, error) {
+	fmt.Print("Provide ID of task: ")
+	input, err := readInput(scanner)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return 0, err
+		}
+
+		return 0, err
+	}
+
+	id, err := strconv.Atoi(input)
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
+
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	var tasks TaskList 
-	id := 1	
+	nextID := 1	
 
 	for {
 		fmt.Print("> ")
@@ -99,50 +118,26 @@ func main() {
 		case "help":
 			fmt.Println("Commands are: help, add, list, exit")
 		case "delete":
-			fmt.Print("Provide ID of task: ")
-			input, err := readInput(scanner)
+			taskID, err := readTaskId(scanner)
 			if err != nil {
-				if errors.Is(err, io.EOF) {
-					fmt.Println("\nGoodbye!")
-					return
-				}
-
-				fmt.Fprintln(os.Stderr, "input error:", err)
-				return
-			}
-
-			id, err := strconv.Atoi(input)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "Error while parsing input:", err)
-				continue
-			}
-
-			if err = tasks.deleteById(id); err != nil {
 				fmt.Fprintln(os.Stderr, "ERROR:", err)
 				continue
 			}
 
-			fmt.Println("Successfully deleted task with ID:", id)
-		case "done":
-			fmt.Print("Provide ID of task: ")
-			input, err := readInput(scanner)
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					fmt.Println("\nGoodbye!")
-					return
-				}
-
-				fmt.Fprintln(os.Stderr, "input error:", err)
-				return
-			}
-
-			id, err := strconv.Atoi(input)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "Error while parsing input:", err)
+			if err = tasks.deleteById(taskID); err != nil {
+				fmt.Fprintln(os.Stderr, "ERROR:", err)
 				continue
 			}
-			
-			t, err := tasks.getById(id)
+
+			fmt.Println("Successfully deleted task with ID:", taskID)
+		case "done":
+			taskID, err := readTaskId(scanner)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "ERROR:", err)
+				continue
+			}
+
+			t, err := tasks.getById(taskID)
 			if err != nil{
 				fmt.Fprintln(os.Stderr, "ERROR: ", err)
 				continue
@@ -150,7 +145,7 @@ func main() {
 
 			t.MarkDone()
 			
-			fmt.Println("Task with ID:", id, " is now marked as (done) ")
+			fmt.Println("Task with ID:", taskID, " is now marked as (done) ")
 		case "add":
 			var newTask Task
 			
@@ -190,12 +185,12 @@ func main() {
 			description = strings.TrimSpace(description)
 
 			newTask.Title = title
-			newTask.ID = id
+			newTask.ID = nextID
 			newTask.Description = description
 			newTask.Status = StatusTodo
 
 			tasks = append(tasks, newTask)
-			fmt.Printf("Task created with ID: %d\n", id); id += 1
+			fmt.Printf("Task created with ID: %d\n", nextID); nextID += 1
 		case "list":
 			printTasks(tasks)
 		case "exit":
