@@ -91,7 +91,7 @@ func readTaskId(scanner *bufio.Scanner) (int, error) {
 		return 0, err
 	}
 
-	input = strings.TrimSpaces(input)
+	input = strings.TrimSpace(input)
 
 	id, err := strconv.Atoi(input)
 	if err != nil {
