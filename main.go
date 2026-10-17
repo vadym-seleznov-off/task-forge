@@ -44,7 +44,7 @@ func (tasks TaskList) getById(id int) (*Task, error){
 		}
 	}
 
-	return nil, errors.New("Not found")
+	return nil, errors.New("task not found")
 }
 
 func (tasks *TaskList) deleteById(id int) error {
@@ -55,7 +55,7 @@ func (tasks *TaskList) deleteById(id int) error {
 		}
 	}
 
-	return errors.New("Task not found")
+	return errors.New("task not found")
 }
 
 func printTasks(tasks TaskList) {
