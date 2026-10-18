@@ -102,14 +102,16 @@ func readTaskId(scanner *bufio.Scanner) (int, error) {
 }
 
 func writeTasks(tasks TaskList) error {
-	data, err := json.Marshal(tasks)
+	data, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {
 		return err
 	}
+
 	err = os.WriteFile("tasks.json", data, 0644)
 	if err != nil {
 		return err
 	}
+
 
 	return nil
 }
@@ -138,6 +140,12 @@ func main() {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	nextID := 1
+
+	for _, task := range tasks {
+		if task.ID >= nextID {
+			nextID = task.ID + 1
+		}
+	}
 
 	for {
 		fmt.Print("> ")
