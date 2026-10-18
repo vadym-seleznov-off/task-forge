@@ -1,30 +1,30 @@
 package main
 
 import (
-	"fmt"
-	"strings"
-	"slices"
-	"strconv"
 	"bufio"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
+	"slices"
+	"strconv"
+	"strings"
 )
-
 
 type Status string
 
 const (
-	StatusTodo 	Status = "todo"
+	StatusTodo  Status = "todo"
 	StatusDoing Status = "doing"
-	StatusDone 	Status = "done"
+	StatusDone  Status = "done"
 )
 
 type Task struct {
-	ID          int
-	Title       string
-	Description string
-	Status      Status
+	ID          int    `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Status      Status `json:"status"`
 }
 
 func (t Task) IsDone() bool {
@@ -37,7 +37,7 @@ func (t *Task) MarkDone() {
 
 type TaskList []Task
 
-func (tasks TaskList) getById(id int) (*Task, error){
+func (tasks TaskList) getById(id int) (*Task, error) {
 	for i := range tasks {
 		if tasks[i].ID == id {
 			return &tasks[i], nil
@@ -50,7 +50,7 @@ func (tasks TaskList) getById(id int) (*Task, error){
 func (tasks *TaskList) deleteById(id int) error {
 	for i := range *tasks {
 		if (*tasks)[i].ID == id {
-			*tasks = slices.Delete(*tasks, i, i + 1)
+			*tasks = slices.Delete(*tasks, i, i+1)
 			return nil
 		}
 	}
@@ -101,10 +101,43 @@ func readTaskId(scanner *bufio.Scanner) (int, error) {
 	return id, nil
 }
 
+func writeTasks(tasks TaskList) error {
+	data, err := json.Marshal(tasks)
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile("tasks.json", data, 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func main() {
+	var tasks TaskList
+
+	data, err := os.ReadFile("tasks.json")
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			fmt.Println("Could not load tasks from a file tasks.json")
+			tasks = TaskList{}
+		} else {
+			fmt.Fprintln(os.Stderr, "ERROR:", err)
+			return
+		}
+	} else {
+		err = json.Unmarshal(data, &tasks)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error while tried to parse json:", err)
+			return
+		}
+
+		fmt.Println("Successfully load tasks from tasks.json file")
+	}
+
 	scanner := bufio.NewScanner(os.Stdin)
-	var tasks TaskList 
-	nextID := 1	
+	nextID := 1
 
 	for {
 		fmt.Print("> ")
@@ -118,7 +151,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "reading standard input error:", err)
 			return
 		}
-	
+
 		request = strings.TrimSpace(request)
 
 		switch request {
@@ -131,13 +164,16 @@ func main() {
 				continue
 			}
 
-
 			if err = tasks.deleteById(taskID); err != nil {
 				fmt.Fprintln(os.Stderr, "ERROR:", err)
 				continue
 			}
 
 			fmt.Println("Successfully deleted task with ID:", taskID)
+			err = writeTasks(tasks)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "Something went wrong when tried to delete task:", err)
+			}
 		case "done":
 			taskID, err := readTaskId(scanner)
 			if err != nil {
@@ -146,17 +182,22 @@ func main() {
 			}
 
 			t, err := tasks.getById(taskID)
-			if err != nil{
+			if err != nil {
 				fmt.Fprintln(os.Stderr, "ERROR: ", err)
 				continue
 			}
 
 			t.MarkDone()
-			
+
 			fmt.Println("Task with ID:", taskID, " is now marked as (done) ")
+
+			err = writeTasks(tasks)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "Something went wrong when tried to update task:", err)
+			}
 		case "add":
 			var newTask Task
-			
+
 			fmt.Print("Title: ")
 			title, err := readInput(scanner)
 
@@ -188,7 +229,6 @@ func main() {
 				fmt.Fprintln(os.Stderr, "input error:", err)
 				return
 			}
-			
 
 			description = strings.TrimSpace(description)
 
@@ -198,7 +238,13 @@ func main() {
 			newTask.Status = StatusTodo
 
 			tasks = append(tasks, newTask)
-			fmt.Printf("Task created with ID: %d\n", nextID); nextID += 1
+			fmt.Printf("Task created with ID: %d\n", nextID)
+			nextID += 1
+
+			err = writeTasks(tasks)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "Something went wrong when tried to add a new task:", err)
+			}
 		case "list":
 			printTasks(tasks)
 		case "exit":
